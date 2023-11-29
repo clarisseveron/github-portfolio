@@ -1,0 +1,199 @@
+install.packages("MASS")
+library(MASS)
+install.packages("actuar")
+library(actuar)
+
+
+d1=scan(file="/Users/clarisse/Desktop/Proba Stat/Micro Projet/Datas/d1")
+d2=scan(file="/Users/clarisse/Desktop/Proba Stat/Micro Projet/Datas/d2")
+d3=scan(file="/Users/clarisse/Desktop/Proba Stat/Micro Projet/Datas/d3")
+
+########## PARTIE 1
+
+#####1: Vérifier que les données sont bien triées (du plus petit au plus grand)
+
+if (!is.unsorted(d1)) {
+  print("Les données du fichier d1 sont triées.")
+} else {
+  print("Les données du fichier d1 ne sont pas triées.")
+  d1=sort(d1)
+}
+
+if (!is.unsorted(d2)) {
+  print("Les données du fichier d2 sont triées.")
+} else {
+  print("Les données du fichier d2 ne sont pas triées.")
+  d2=sort(d2)
+}
+
+# --> Les données sont bien triées par ordre croissant 
+
+
+####2: Déterminer s’il s’agit d’une loi discrète ou bien d’une loi continue
+
+#On crée un historigramme afin d'analyser la répartition des données.
+
+hist(d1)
+hist(d2)
+
+####3: Statistiques descriptives des deux échantillons
+
+summary(d1)  
+summary(d2)
+
+# Moyenne (espérance)
+mean_d1=mean(d1)
+cat("Moyenne de d1:", mean_d1)
+mean_d2=mean(d2)
+cat("Moyenne de d2:", mean_d2)
+
+
+# Médiane
+median_d1=median(d1)
+cat("Médiane de d1:", median_d1)
+median_d2=median(d2)
+cat("Médiane de d2:", median_d2)
+
+
+# Variance
+var_d1=var(d1)
+cat("Variance de d1:", var_d1)
+var_d2=var(d2)
+cat("Variance de d2:", var_d2)
+
+
+# Écart-type
+sd_d1=sd(d1)
+cat("Écart-type de d1:", sd_d1)
+sd_d2=sd(d2)
+cat("Écart-type de d2:", sd_d2)
+
+
+####4: Tester sa valeur moyenne contre au moins 2 valeurs numériques de votre choix
+
+value1=3  
+value2=1.5  
+
+# Test de la moyenne de d1 par rapport à value1
+t_test1=t.test(d1, mu = value1)
+cat("Test de la moyenne de d1 par rapport à value1 :\n")
+print(t_test1)
+
+# Test de la moyenne de d1 par rapport à value2
+t_test2=t.test(d1, mu = value2)
+cat("Test de la moyenne de d1 par rapport à value2 :\n")
+print(t_test2)
+
+# Test de la moyenne de d2 par rapport à value1
+t_test3=t.test(d2, mu = value1)
+cat("Test de la moyenne de d2 par rapport à value2 :\n")
+print(t_test3)
+
+# Test de la moyenne de d1 par rapport à value2
+t_test4=t.test(d2, mu = value2)
+cat("Test de la moyenne de d2 par rapport à value2 :\n")
+print(t_test4)
+
+
+####5. Donner une estimation de sa valeur moyenne ainsi que l’intervalle de confiance à 95% où la
+####.  moyenne se trouverait.
+
+
+# Estimation de la moyenne et de l'intervalle de confiance à 95% pour d1
+result_d1=t.test(d1)
+mean_d1=result_d1$estimate[1]
+conf_int_d1=result_d1$conf.int
+
+cat("Moyenne de d1:", mean_d1, "\n")
+cat("Intervalle de confiance à 95%:", conf_int_d1[1], "à", conf_int_d1[2])
+
+
+# Estimation de la moyenne et de l'intervalle de confiance à 95% pour d2
+result_d2=t.test(d2)
+mean_d2=result_d2$estimate[1] 
+conf_int_d2=result_d2$conf.int   
+
+cat("Moyenne de d2:", mean_d2, "\n")
+cat("Intervalle de confiance à 95%:", conf_int_d2[1], "à", conf_int_d2[2])
+
+
+
+####6. Vérifier une éventuelle adéquation de l’échantillon versus au moins 2 lois de votre choix
+#### a. Une suggestion de lois candidates, avec leurs paramétrages, est fournie en annexe
+#### b. Remarque : du fait de votre choix et du caractère aléatoire des data, il est possible qu’aucune des 2 lois candidates n’offre une adéquation satisfaisante.
+
+
+# Loi uniforme
+uniforme5=ks.test(d1, "punif", 0, 5)
+uniforme10=ks.test(d1, "punif", 0, 10)
+uniforme20=ks.test(d1, "punif", 0, 20)
+print(uniforme5)
+print(uniforme10)
+print(uniforme20)
+
+
+#Loi de poisson
+poisson_fit <- glm(d1 ~ 1, family = poisson(link = "log"))
+summary(poisson_fit)
+
+residuals <- resid(poisson_fit)
+qqnorm(residuals)
+qqline(residuals)
+
+
+
+#Loi Binomiale: essai sur plusieurs valeurs que peuvent prendre les paramètres n et p
+
+n_values <- c(10, 20)
+p_values <- c(0.1, 0.2, 0.3, 0.4)
+
+results <- matrix(NA, nrow = length(n_values) * length(p_values), ncol = 3)
+colnames(results) <- c("n", "p", "KS Test p-value")
+
+i <- 1
+for (n in n_values) {
+  for (p in p_values) {
+    binom_dist <- rbinom(1000, size = n, prob = p)
+    ks_test <- ks.test(d1, binom_dist)
+    results[i, ] <- c(n, p, ks_test$p.value)
+    i <- i + 1
+  }
+}
+
+print(results)
+
+
+
+# Loi Uniforme:
+
+uniforme=ks.test(d2, "punif", min = 0, max = 10, alternative = "two.sided")
+print(uniforme)
+
+
+
+# Loi exponentielle 
+lambda=1
+exp_sample <- rexp(length(d2), rate = lambda)
+ks_result <- ks.test(d2, exp_sample)
+print(ks_result)
+
+
+
+########## PARTIE 2 
+
+####1. Calculer le coefficient de corrélation
+
+correlation_d3_d1 <- cor(d3, d1)
+correlation_d3_d2 <- cor(d3, d2)
+
+cat("Coefficient de corrélation entre d3 et d1 : ", correlation_d3_d1, "\n")
+cat("Coefficient de corrélation entre d3 et d2 : ", correlation_d3_d2, "\n")
+
+
+####4. Modèle de relation linéaire
+
+model_d3_d1=lm(d3 ~ d1)
+summary(model_d3_d1)
+
+model_d3_d2 <- lm(d3 ~ d2)
+summary(model_d3_d2)

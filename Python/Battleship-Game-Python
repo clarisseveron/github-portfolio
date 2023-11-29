@@ -1,0 +1,277 @@
+# -- coding: utf-8 --
+#pygame
+"""
+Created on Fri Nov 19 10:16:32 2021
+@author: Clarisse
+"""
+N = 10
+COLONNES = [str(i) for i in range(N)]
+LIGNES = [' '] + list(map(chr, range(97, 107)))
+DICT_LIGNES_INT = {LIGNES[i]: i - 1 for i in range(len(LIGNES))}
+VIDE = '.'
+EAU = 'o'
+TOUCHE = 'x'
+BATEAU = '#'
+DETRUIT = '@'
+NOMS = ['Transporteur', 'Cuirasse','Croiseur','Sous-marin','Destructeur']
+TAILLES = [5,4,3,3,2]
+# 1.1
+def create_grid():
+   return [[VIDE] * N for e in range(N)]
+m = create_grid()
+# 1.2
+def plot_grid(m):
+   s = " "
+   for x in COLONNES:
+       s += " " + x
+   s += "\n"
+   for i in range(N):
+       s += LIGNES[i + 1]
+       for j in range(N):
+           s += " "
+           s += m[i][j]
+       s += "\n"
+   print(s)
+# 1.3 3.5
+def tir(m, pos, flotte):
+   i = pos[0]
+   j = pos[1]
+   # Si on a déjà tiré sur cette position
+   if m[i][j] != VIDE:
+       return False
+   # si on tire sur un bateau
+   if presence_bateau(pos, flotte):
+       # pour changer la valeur de "cases touchées"
+       for x in range(len(flotte)):
+           if pos in flotte[x]["position"]:
+               flotte[x]["cases touchées"] += 1
+               # si toutes les cases du bateau ont été touchées
+               if flotte[x]["cases touchées"] == flotte[x]["taille"]:
+                   for y in flotte[x]["position"]:
+                       i = y[0]
+                       j = y[1]
+                       m[i][j] = DETRUIT
+                   flotte.pop(x)
+                   print("Touché-coulé")
+                   print(plot_grid(m))
+                   return False
+               else:
+                   m[i][j] = TOUCHE
+                   print("Touché!")
+   # si on tire sur l'eau (donc pas de bateau)
+   else:
+       m[i][j] = EAU
+       print("Manqué!")
+   print(plot_grid(m))
+   return True
+# 1.4
+from random import randrange
+def random_position():
+   a = randrange(0, N)
+   b = randrange(0, N)
+   return (a, b)
+# 1.5
+#while True:
+   #plot_grid(m)
+  #pos = random_position()
+    #tir(m,pos)
+    #input()
+# 1.6
+def pos_from_string(S):
+   L = S.split()
+   L[0] = ord(L[0]) - ord("a")#isnumeric
+   if (0 <= int(L[1]) <= 9 and L[0] <= 9):
+       d = (L[0], int(L[1]))
+       return d
+   else:
+       s = str(input(
+           "veuillez entrer une position conforme avec une lettre en minuscule entre a et j, un espace, puis un numéro entre 0 et 9 : "))
+       return pos_from_string(s)
+# 2.2
+def presence_bateau(pos, flotte):
+   for bat in flotte:
+       if pos in bat["position"]:
+           return True
+   return False
+
+def test(pos):
+   a, b = pos
+   return (0 <= a <= 9) and (0 <= b <= 9)
+flotte = []
+# 2.1 et 2.6
+def nouveau_bateau(flotte, nom, taille, pos, orientation):
+   b = {}
+   b['nom'] = str(nom)
+   b['taille'] = int(taille)
+   b['position'] = []
+   b['cases touchées'] = 0
+   for i in range(0, taille):
+       if (orientation == 'h'):
+           if presence_bateau((pos[0], i + pos[1]), flotte) == False and test(pos) and (pos[1] + int(taille) - 1 <= 9):
+               b['position'].append((pos[0], i + pos[1]))
+           else:
+               return False
+       elif orientation == "v":
+           if presence_bateau((i + pos[0], pos[1]), flotte) == False and test(pos) and (pos[0] + int(taille) - 1 <= 9):
+               b['position'].append((i + pos[0], pos[1]))
+           else:
+               return False
+   flotte.append(b)
+   return True
+# 2.3
+def plot_flotte_grid(m, flotte):
+   s = " "
+   for x in COLONNES:
+       s += " " + x
+   s += "\n"
+   for i in range(N):
+       s += LIGNES[i + 1]
+       for j in range(N):
+           s += " "
+           if presence_bateau((i, j), flotte) and m[i][j] == VIDE:
+               s += BATEAU
+           else:
+               s += m[i][j]
+       s += "\n"
+   print(s)
+# 2.4
+def input_ajout_bateau(flotte, nom, taille):
+   position2 = input("Entrez une position comme ‘a 0’  ou ‘f 7’ : ")
+   position2 = pos_from_string(position2)
+   orientation = str(input("Veuillez entrer une orientation : "))
+   if orientation != 'h' and orientation != 'v':
+       input_ajout_bateau(flotte, nom, taille)
+   res = nouveau_bateau(flotte, nom, taille, position2, orientation)
+   if res == False:
+       print('Il y a déjà un bateau ou le bateau dépasse de la carte veuillez donner une nouvelle position : ')
+       input_ajout_bateau(flotte, nom, taille)
+   print(flotte)
+# 2.8
+def init_joueur():
+   flotte = []
+   m = create_grid()
+   for i in range(len(NOMS)):
+       print("ajout du bateau : " + NOMS[i])
+       input_ajout_bateau(flotte, NOMS[i], TAILLES[i])
+   return m, flotte
+# 2.9
+from random import choice
+def random_orientation():
+   l = ['h', 'v']
+   return choice(l)
+def init_ia():
+   flotte1 = []
+   m = create_grid()
+   for i in range(len(NOMS)):
+       pos = random_position()
+       o = random_orientation()
+       res = nouveau_bateau(flotte1, NOMS[i], TAILLES[i], pos, o)
+       if res == False:
+           return init_ia()
+   return (m, flotte1)
+# 3.3
+def id_bateau_at_pos(pos, flotte):
+   if tir(m, pos, flotte):
+       for i in range(len(flotte)):
+           if pos in flotte[i]["position"]:
+               return i
+   return None
+# 4.1
+def tour_ia_random(m, flotte):
+   pos = random_position()
+   i = pos[0]
+   j = pos[1]
+   while (m[i][j] != VIDE):
+       pos = random_position()
+       i = pos[0]
+       j = pos[1]
+   return (tir(m, pos, flotte))
+# 4.2
+def tour_joueur(nom, m, flotte):
+   pos = input("Entrez une position comme 'c 5' pour attaquer l'adversaire ': ")
+   pos = pos_from_string(pos)
+   i = pos[0]
+   j = pos[1]
+   while (m[i][j] != VIDE):  # cherche pas attaqué
+       pos = input("Entrez une position comme 'c 5' : ")
+       pos = pos_from_string(pos)
+       i = pos[0]
+       j = pos[1]
+   if (len(pos) == 0):
+       return tour_joueur(nom, m, flotte)
+   return tir(m, pos, flotte)
+# 4.3 faire une liste
+def tour_ia_better_random(m, flotte):
+   pos = ()
+   for i in range(N):
+       for j in range(N):
+           # trouve l'emplacement d'un bateau touché mais non détruit
+           if (m[i][j] == TOUCHE and m[i][j] != DETRUIT):
+               if (test((i + 1, j)) and m[i + 1][j] == VIDE):
+                   pos = (i + 1, j)
+               elif (test((i - 1, j)) and m[i - 1][j] == VIDE):
+                   pos = (i - 1, j)
+               elif (test((i, j + 1)) and m[i][j + 1] == VIDE):
+                   pos = (i, j + 1)
+               elif (test((i, j - 1)) and m[i][j - 1] == VIDE):
+                   pos = (i, j - 1)
+   if (len(pos) == 0):
+       return tour_ia_random(m, flotte)
+   return tir(m, pos, flotte)
+# optimisations a faire
+# 4.4
+from sys import exit
+def test_fin_partie(nom, m, flotte, nb_tour):
+   if len(flotte) == 0:
+       print("Joueur " + nom + " gagnant en ", nb_tour, " tours")
+       exit()
+# IA=nom1,m1,flotte1
+# joueur=nom2,m2,flotte2
+# 4.5
+def joueur_vs_ia():
+   nom2 = input("nom joueur ? ")
+   nom1 = "IA"
+   m1, flotte1 = init_ia()  # ordi
+   m2, flotte2 = init_joueur()  # joueur
+   nb_tour = 0
+   while True:
+       tour_joueur(nom2, m1, flotte1)  # car il attaque la flotte de l'ordi
+       test_fin_partie(nom2, m1, flotte1, nb_tour)
+       tour_ia_better_random(m2, flotte2)  # et inversement
+       test_fin_partie(nom1, m2, flotte2, nb_tour)
+       nb_tour += 1
+# 4.6
+def hide():  # pour jouer à 2 joueurs sur un ordi
+   for i in range(25):
+       print("\n")
+def deux_joueurs():
+   nom1 = input("nom joueur 1 ? ")
+   nom2 = input("nom joueur 2? ")
+   hide()
+   print("\n" + "Tour du joueur : " + nom1 + "\n")
+   m1, flotte1 = init_joueur()  # joueur1
+   hide()
+   print("Tour du joueur : " + nom2 + "\n")
+   m2, flotte2 = init_joueur()  # joueur2
+   nb_tour = 0
+   hide()
+   while True:
+       print("\n" + "Tour du joueur : " + nom1 + "\n")
+       tour_joueur(nom1, m2, flotte2)  # attaque joueur 2
+       test_fin_partie(nom1, m2, flotte2, nb_tour)
+       print("\n" + "Tour du joueur : " + nom2 + "\n")
+       tour_joueur(nom2, m1, flotte1)  # inversement
+       test_fin_partie(nom2, m1, flotte1, nb_tour)
+       nb_tour += 1
+# 4.7
+def jeu():
+   joueurs = int(input("Voulez vous jouer à 1 ou 2 joueurs ? "))
+   if joueurs == 1:
+       return joueur_vs_ia()
+   if joueurs == 2:
+       return deux_joueurs()
+   else:
+       print("Veuillez entrer 1 ou 2")
+       jeu()
+
+print(jeu())
